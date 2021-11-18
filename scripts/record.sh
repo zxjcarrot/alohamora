@@ -12,6 +12,6 @@ while read -r line; do
         echo "exists: ${url}, ${record_dir}"
     else
         echo "record: ${url}, ${record_dir}"
-        timeout --foreground 60 blaze record --record_dir ${record_dir} ${url}
+        timeout --foreground 60 ./blaze_exec record --record_dir ${record_dir} ${url}
     fi
 done < "$file"

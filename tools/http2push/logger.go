@@ -7,7 +7,7 @@ import (
 
 var (
 	// ServerLogger is the logger for the server
-	ServerLogger = log.New(os.Stdout, "[server] ", log.LstdFlags)
+	ServerLogger = log.New(os.Stderr, "[server] ", log.LstdFlags)
 	// RunnerLogger is the logger for the runner
-	RunnerLogger = log.New(os.Stdout, "[runner] ", log.LstdFlags)
+	RunnerLogger = log.New(os.Stderr, "[runner] ", log.LstdFlags)
 )

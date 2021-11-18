@@ -41,6 +41,7 @@ def record_webpage(url: str, save_dir: str, config: Config):
         mm_config = MahiMahiConfig(config)
         cmd = mm_config.record_shell_with_cmd(save_dir, chrome_cmd)
 
+        print(cmd)
         logger.with_namespace("record_webpage").debug("spawning web recorder", url=url, cmd=cmd)
 
         proc = subprocess.run(cmd, stdout=sys.stderr, stderr=sys.stderr)
