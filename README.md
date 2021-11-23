@@ -17,12 +17,20 @@ If you are not already in the virtualenv, run `source .blaze_env/bin/activate`.
 
 # Record Traces
 ```
+cd alohamora
+mkdir train_dir
+rm -rf train_dir/*
 CHROME_BIN=/home/zxjcarrot/ungoogled-chromium_75.0.3770.80-1.1_linux/chrome sh scripts/record.sh top10.txt train_dir
 ```
 
 # Preprocess
 ```
-./blaze_exec preprocess --record_dir neversslcom --output manifest_output http://www.neverssl.com
+python scripts/preprocess.py --train_dir train_dir --num_workers=10
+```
+
+# Training
+```
+sh scripts/trainer.sh manifests.txt
 ```
 # Run Tests
 
