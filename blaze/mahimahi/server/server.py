@@ -187,6 +187,7 @@ def start_server(
                 # If wait lasts for more than 0.5 seconds, a TimeoutError will be raised, which is okay since it
                 # means that nginx is running successfully. If it finishes sooner, it means it crashed and
                 # we should raise an exception
+                print("sucessfully started dnsmasq")
                 try:
                     proc = subprocess.Popen(
                         ["/usr/local/openresty/nginx/sbin/nginx", "-c", conf_file], stdout=sys.stderr, stderr=sys.stderr

@@ -46,7 +46,7 @@ RUN apt-get update -y && \
     wget "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb" && \
     (dpkg -i google-chrome-stable_current_amd64.deb || apt-get -f install -y) && \
     # Install mahimahi
-    git clone https://github.com/ravinet/mahimahi && \
+    git clone https://github.com/zxjcarrot/mahimahi && \
     cd mahimahi && \
     ./autogen.sh && \
     ./configure && \

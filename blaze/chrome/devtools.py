@@ -38,37 +38,40 @@ def capture_har_in_replay_server(
     policy = policy or Policy.from_dict({})
     mahimahi_config = MahiMahiConfig(config=config, policy=policy, client_environment=client_env)
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        policy_file = os.path.join(temp_dir, "policy.json")
-        output_file = os.path.join(temp_dir, "har.json")
-        trace_file = os.path.join(temp_dir, "trace_file")
+    temp_dir = tempfile.mkdtemp()
+    policy_file = os.path.join(temp_dir, "policy.json")
+    output_file = os.path.join(temp_dir, "har.json")
+    trace_file = os.path.join(temp_dir, "trace_file")
+    print(policy_file, output_file, trace_file)
+    with open(policy_file, "w") as f:
+        print("writing push policy file %s " % policy_file)
+        log.debug("writing push policy file", policy_file=policy_file)
+        f.write(json.dumps(policy.as_dict))
+    with open(trace_file, "w") as f:
+        print("writing trace file %s " % trace_file)
+        log.debug("writing trace file", trace_file=trace_file)
+        f.write(mahimahi_config.formatted_trace_file)
 
-        with open(policy_file, "w") as f:
-            log.debug("writing push policy file", policy_file=policy_file)
-            f.write(json.dumps(policy.as_dict))
-        with open(trace_file, "w") as f:
-            log.debug("writing trace file", trace_file=trace_file)
-            f.write(mahimahi_config.formatted_trace_file)
+    # configure the HAR capturer
+    cmd = mahimahi_config.har_capture_cmd(
+        share_dir=temp_dir,
+        har_output_file_name="har.json",
+        policy_file_name="policy.json",
+        link_trace_file_name="trace_file",
+        capture_url=url,
+        cache_time=cache_time,
+        user_data_dir=user_data_dir,
+        extract_critical_requests=extract_critical_requests,
+    )
 
-        # configure the HAR capturer
-        cmd = mahimahi_config.har_capture_cmd(
-            share_dir=temp_dir,
-            har_output_file_name="har.json",
-            policy_file_name="policy.json",
-            link_trace_file_name="trace_file",
-            capture_url=url,
-            cache_time=cache_time,
-            user_data_dir=user_data_dir,
-            extract_critical_requests=extract_critical_requests,
-        )
+    # spawn the HAR capturer process
+    print("spawning har capturer %s %s" % (url, cmd))
+    log.debug("spawning har capturer", url=url, cmd=cmd)
+    har_capture_proc = subprocess.run(cmd, stdout=sys.stderr, stderr=sys.stderr, timeout=300)
+    har_capture_proc.check_returncode()
 
-        # spawn the HAR capturer process
-        log.debug("spawning har capturer", url=url, cmd=cmd)
-        har_capture_proc = subprocess.run(cmd, stdout=sys.stderr, stderr=sys.stderr, timeout=300)
-        har_capture_proc.check_returncode()
-
-        with open(output_file, "r") as f:
-            return har_from_json(f.read())
+    with open(output_file, "r") as f:
+        return har_from_json(f.read())
 
 
 def capture_si_in_replay_server(

@@ -1,10 +1,1 @@
-google.com
-facebook.com
-doubleclick.net
-google-analytics.com
-akamaihd.net
-googlesyndication.com
-googleapis.com
-googleadservices.com
-facebook.net
-youtube.com
+http://www.neverssl.com
