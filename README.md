@@ -20,7 +20,7 @@ If you are not already in the virtualenv, run `source .blaze_env/bin/activate`.
 cd alohamora
 mkdir train_dir
 rm -rf train_dir/*
-CHROME_BIN=/home/zxjcarrot/ungoogled-chromium_75.0.3770.80-1.1_linux/chrome sh scripts/record.sh top10.txt train_dir
+CHROME_BIN=../ungoogled-chromium_75.0.3770.80-1.1_linux/chrome sh scripts/record.sh top10.txt train_dir
 ```
 
 # Preprocess
@@ -30,6 +30,9 @@ python scripts/preprocess.py --train_dir train_dir --num_workers=10
 
 # Training
 ```
+mkdir -p mkdir push-policy/aft_training
+cp train_dir/*.manifest push-policy/aft_training
+ls -1 train_dir/*.manifest | sed 's/.manifest//g' > manifests.txt
 sh scripts/trainer.sh manifests.txt
 ```
 # Run Tests

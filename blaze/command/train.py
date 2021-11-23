@@ -55,10 +55,12 @@ def train(args):
         from blaze.model import apex as model
     if args.model == "PPO":
         from blaze.model import ppo as model
-
+    
+    print("args.manifest_file=",args.manifest_file)
     # compute resume flag and initialize training
     resume = False if args.no_resume else True if args.resume else "prompt"
     train_config = TrainConfig(experiment_name=args.name, num_workers=args.workers, resume=resume)
     env_config = EnvironmentConfig.load_file(args.manifest_file)
     config = get_config(env_config, reward_func=args.reward_func, use_aft=args.use_aft)
+    print(train_config)
     model.train(train_config, config)

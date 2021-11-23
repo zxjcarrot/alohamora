@@ -1,10 +1,10 @@
 #! /bin/bash
 
 export LOG_LEVEL=warn
-export PUSH_POLICY_DIR=/home/nikhil/push-policy
+export PUSH_POLICY_DIR=./push-policy
 
 MODEL=A3C
-WORKERS=72
+WORKERS=16
 REWARD_FUNC=3
 MANIFEST_DIR="${PUSH_POLICY_DIR}/aft_training"
 TRAIN_LOG_FILE="${PUSH_POLICY_DIR}/train.log"
