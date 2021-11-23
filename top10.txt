@@ -1,1 +1,6 @@
 http://www.neverssl.com
+https://www.google.com
+https://www.nytimes.com
+https://www.youtube.com/
+https://www.twitter.com/
+https://www.baidu.com/

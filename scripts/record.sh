@@ -5,7 +5,7 @@ train_dir="$2"
 
 while read -r line; do
     url="$line"
-    record_file=$(echo "${line}" | sed 's/https:\/\///' | sed 's/\//__/g')
+    record_file=$(echo "${line}" | sed 's/https:\/\///' | sed 's/http:\/\///' | sed 's/\//__/g')
     record_dir="${train_dir}/${record_file}"
 
     if [[ -d "$record_dir" ]]; then
