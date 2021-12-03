@@ -14,7 +14,7 @@ from .model import SavedModel
 WINDOW_SIZE = 50
 MAX_ITERATIONS = 150
 MIN_ITERATIONS = 50
-MAX_TIME_SECONDS = 2 * 60 * 60  # 2 hours
+MAX_TIME_SECONDS = 1 * 60 * 60  # 2 hours
 
 
 def stop_condition():
@@ -38,7 +38,7 @@ def stop_condition():
 
         if "episode_reward_max" in result and "episode_reward_min" in result and "episode_reward_mean" in result:
             rewards = (result["episode_reward_min"], result["episode_reward_mean"], result["episode_reward_max"])
-            log.debug("recording trial result", trial_id=trial_id, num_iters=num_iters, rewards=rewards)
+            log.info("recording trial result", trial_id=trial_id, num_iters=num_iters, rewards=rewards)
             past_rewards.append(rewards)
         else:
             log.warn("unable to record episode result", result=result, trial_id=trial_id)
@@ -50,7 +50,7 @@ def stop_condition():
 
         if num_iters > MIN_ITERATIONS:
             stdev_min, stdev_mean, stdev_max = tuple(map(stdev, zip(*past_rewards)))
-            log.debug("reward stats", stdev_min=stdev_min, stdev_mean=stdev_mean, stdev_max=stdev_max)
+            log.info("reward stats", stdev_min=stdev_min, stdev_mean=stdev_mean, stdev_max=stdev_max)
             relative_stdev_based_stop = stdev_mean <= 0.05 * abs(past_rewards[-1][1])
 
             if num_iters > MAX_ITERATIONS or relative_stdev_based_stop:
@@ -65,7 +65,7 @@ def stop_condition():
 
 COMMON_CONFIG = {
     "sample_batch_size": 256,
-    "train_batch_size": 1024,
+    "train_batch_size": 512,
     "batch_mode": "truncate_episodes",
     "collect_metrics_timeout": 1200,
     "num_workers": 2,
@@ -90,7 +90,7 @@ def train(train_config: TrainConfig, config: Config):
                 "env": Environment,
                 "stop": ray.tune.function(stop_condition()),
                 "checkpoint_at_end": True,
-                "checkpoint_freq": 10,
+                "checkpoint_freq": 1,
                 "max_failures": 3,
                 "config": {**COMMON_CONFIG, "num_workers": train_config.num_workers, "env_config": config},
             }

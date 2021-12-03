@@ -63,6 +63,7 @@ class Har(NamedTuple):
     timings: Dict[str, Timing]
     # the amount of time until the `onload` event
     page_load_time_ms: float = 0.0
+    critical_resource_min_time_ms: float = 0.0
 
 
 JSON_CLASS_MAP = {frozenset(c._fields): c for c in [Request, Response, HarEntry, HarLog, Har, Timing]}

@@ -5,6 +5,7 @@ loading a webpage and simulating its page load time from a dependency graph
 
 import copy
 import json
+import numpy as np
 from queue import PriorityQueue
 from typing import List, Optional, Set, Tuple
 
@@ -289,7 +290,6 @@ class Simulator:
         """
         self.log.verbose("simulating page load with client environment", **client_env._asdict())
         self.reset_simulation(client_env, policy=policy, cached_urls=cached_urls)
-
         if policy:
             # First simulate it without the policy to comparing timing information
             self.no_push = Simulator(self.env_config)
@@ -313,11 +313,22 @@ class Simulator:
                 self.step_request_queue()
             self.schedule_child_requests(curr_node)
 
+        # if use_aft:
+        #     critical_nodes = [node for node in self.node_map.values() if node.resource.critical]
+        #     if critical_nodes:
+        #         return max(self.completed_nodes[node] for node in critical_nodes)
+        #     self.log.warn("requested speed index, but no nodes marked `critical` found")
         if use_aft:
             critical_nodes = [node for node in self.node_map.values() if node.resource.critical]
+            ttfp = 0
+            ctime = self.completion_time()
             if critical_nodes:
-                return max(self.completed_nodes[node] for node in critical_nodes)
-            self.log.warn("requested speed index, but no nodes marked `critical` found")
+                ttfp = np.mean(self.completed_nodes[node] for node in critical_nodes)
+                return ttfp
+            else:
+                self.log.warn("requested Time to First Paint, but no nodes marked `critical` found")
+                return ctime
+
         return self.completion_time()
 
     def completion_time(self, url: Optional[str] = None) -> float:

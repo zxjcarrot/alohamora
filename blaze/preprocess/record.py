@@ -23,8 +23,8 @@ from blaze.util.seq import ordered_uniq
 from .har import har_entries_to_resources, compute_parent_child_relationships
 from .url import Url
 
-EXECUTION_CAPTURE_RUNS = 5
-STABLE_SET_NUM_RUNS = 10
+EXECUTION_CAPTURE_RUNS = 3
+STABLE_SET_NUM_RUNS = 3
 
 
 def record_webpage(url: str, save_dir: str, config: Config):
@@ -166,12 +166,13 @@ def get_page_load_time_in_replay_server(
         hars.append(har)
         log.debug("captured page execution", page_load_time=har.page_load_time_ms)
 
-    hars.sort(key=lambda h: h.page_load_time_ms)
+    hars.sort(key=lambda h: h.page_load_time_ms * 0.5 + h.critical_resource_min_time_ms * 0.5)
     plt_ms = [h.page_load_time_ms for h in hars]
+    cr_ms = [h.critical_resource_min_time_ms for h in hars]
     median_har = hars[len(hars) // 2]
-    log.debug("recorded execution times", plt_ms=plt_ms)
+    log.info("recorded execution times", plt_ms=plt_ms, cr_ms=cr_ms)
 
-    return median_har.page_load_time_ms, plt_ms
+    return median_har.page_load_time_ms, plt_ms, cr_ms
 
 
 def get_speed_index_in_replay_server(

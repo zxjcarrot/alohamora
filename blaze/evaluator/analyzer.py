@@ -133,6 +133,7 @@ class Analyzer:
             self.simulator, self.client_environment, self.cached_urls, self.use_aft
         )
         self.log = logger.with_namespace("analyzer")
+        self.log.info(message="123", use_aft=use_aft)
 
     def reset(self, client_environment: Optional[ClientEnvironment] = None, cached_urls: Optional[Set[str]] = None):
         """ Resets the analyzer's state and optionally changes the client environment """

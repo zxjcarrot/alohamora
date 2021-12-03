@@ -9,7 +9,7 @@ from .level import Level
 class Logger:
     """ Logger is a class that logs some messages to a defined output stream """
 
-    def __init__(self, namespace=None, min_level=Level.INFO, time_start=time.time(), print_fn=print, context=None):
+    def __init__(self, namespace=None, min_level=Level.DEBUG, time_start=time.time(), print_fn=print, context=None):
         self.namespace = namespace
         self.min_level = min_level
         self.time_start = time_start

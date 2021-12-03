@@ -14,6 +14,7 @@ const main = args => {
     console.log(`speedindex is true`)
     speedIndex(args.url, args.outputFile, args.userDataDir) 
   } else {
+    console.log('captureHar')
     captureHar(args.url, args.cpuSlowdown, args.outputFile, args.extractCriticalRequests, args.userDataDir);
   }  
 }

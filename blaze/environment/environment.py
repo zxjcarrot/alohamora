@@ -58,18 +58,18 @@ class Environment(gym.Env):
 
     def initialize_environment(self, client_environment: ClientEnvironment, cached_urls: Optional[Set[str]] = None):
         """ Initialize the environment """
-        log.info(
-            "initialized environment",
-            network_type=client.NetworkType(client_environment.network_type),
-            network_speed=client.NetworkSpeed(client_environment.network_speed),
-            device_speed=client.DeviceSpeed(client_environment.device_speed),
-            bandwidth=client_environment.bandwidth,
-            latency=client_environment.latency,
-            cpu_slowdown=client_environment.cpu_slowdown,
-            loss=client_environment.loss,
-            reward_func=self.analyzer.reward_func_num,
-            cached_urls=cached_urls,
-        )
+        # log.info(
+        #     "initialized environment",
+        #     network_type=client.NetworkType(client_environment.network_type),
+        #     network_speed=client.NetworkSpeed(client_environment.network_speed),
+        #     device_speed=client.DeviceSpeed(client_environment.device_speed),
+        #     bandwidth=client_environment.bandwidth,
+        #     latency=client_environment.latency,
+        #     cpu_slowdown=client_environment.cpu_slowdown,
+        #     loss=client_environment.loss,
+        #     reward_func=self.analyzer.reward_func_num,
+        #     cached_urls=cached_urls,
+        # )
         # Cache scenarios in hours
         scenarios = [0, 0, 0, 0, 0, 1, 2, 4, 12, 24]
         cache_time = self.np_random.choice(scenarios)
@@ -103,13 +103,13 @@ class Environment(gym.Env):
         action_applied = self.policy.apply_action(decoded_action)
 
         # make sure the action isn't used again
-        log.info("trying action", action_id=action, action=repr(decoded_action), steps_taken=self.policy.steps_taken)
+        #log.info("trying action", action_id=action, action=repr(decoded_action), steps_taken=self.policy.steps_taken)
         self.action_space.use_action(decoded_action)
 
         reward = NOOP_ACTION_REWARD
         if action_applied:
             reward = self.analyzer.get_reward(self.policy)
-            log.info("got reward", action=repr(decoded_action), reward=reward)
+            #log.info("got reward", action=repr(decoded_action), reward=reward)
 
         info = {"action": decoded_action, "policy": self.policy.as_dict}
         return self.observation, reward, not action_applied, info

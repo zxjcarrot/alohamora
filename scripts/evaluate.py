@@ -120,8 +120,7 @@ def test_website(
         with open(
             get_results_fname(experiment_name, results_dir, bandwidth, cpu_slowdown, latency) + ".log", "ab+"
         ) as errf:
-            monitor_process(
-                [
+            cmd = [
                     "blaze",
                     "evaluate",
                     "--model",
@@ -140,7 +139,11 @@ def test_website(
                     str(reward_func),
                     "--run_simulator",
                     "--run_replay_server",
-                ],
+                    "--extract_critical_requests"
+                ]
+            print(f"cmd {cmd} ...")
+            monitor_process(
+                cmd,
                 60 * 10,
                 outf,
                 errf,

@@ -2,7 +2,22 @@
 import json
 
 import grpc
+import collections
+import json
+import random
+import urllib
+import subprocess
+import traceback
+from typing import Callable, List, Optional, Set, Tuple
 
+from blaze.action import Policy
+from blaze.config.client import (
+    get_client_environment_from_parameters,
+    get_default_client_environment,
+    ClientEnvironment,
+)
+from blaze.config.config import get_config, Config
+from blaze.config.environment import EnvironmentConfig, ResourceType
 from blaze.config.client import get_client_environment_from_parameters
 from blaze.config.config import get_config
 from blaze.config.environment import EnvironmentConfig
@@ -11,9 +26,9 @@ from blaze.evaluator.simulator import Simulator
 from blaze.logger import logger as log
 from blaze.preprocess.record import get_page_load_time_in_replay_server
 from blaze.serve.client import Client
-
+from typing import Callable, List, Optional, Set, Tuple
 from . import command
-
+from blaze.action import Policy
 
 @command.argument("--manifest", "-m", help="The location of the page manifest to query the model for", required=True)
 @command.argument("--bandwidth", "-b", help="The bandwidth to query the model for (kbps)", type=int, required=True)
@@ -77,6 +92,9 @@ def query(args):
 @command.argument(
     "--run_replay_server", help="Run the outputted policy through the replay server (implies -v)", action="store_true"
 )
+@command.argument(
+    "--extract_critical_requests", help="extract_critical_requests", action="store_true"
+)
 @command.command
 def evaluate(args):
     """
@@ -94,8 +112,7 @@ def evaluate(args):
         for res in group.resources
         if args.cache_time is not None and res.cache_time > args.cache_time
     )
-
-    log.debug("using cached resources", cached_urls=cached_urls)
+    log.info("using cached resources", cached_urls=cached_urls)
     config = get_config(manifest, client_env, args.reward_func).with_mutations(
         cached_urls=cached_urls, use_aft=args.use_aft
     )
@@ -113,9 +130,14 @@ def evaluate(args):
 
     saved_model = model.get_model(args.location)
     instance = saved_model.instantiate(config)
+    import time
+    tic = time.perf_counter()
     policy = instance.policy
+    toc = time.perf_counter()
+    print(f"Policy generated in {toc - tic:0.4f} seconds")
     data = policy.as_dict
 
+    print("Model Policy Loaded")
     if args.verbose or args.run_simulator or args.run_replay_server:
         data = {
             "manifest": args.manifest,
@@ -124,17 +146,61 @@ def evaluate(args):
             "policy": policy.as_dict,
         }
 
+    baseline_policy_generator = _push_preload_all_policy_generator()
+    baseline_policy = baseline_policy_generator(manifest)
+    print("Baseline Policy ", baseline_policy.as_dict)
+    print("Model Policy: ", policy.as_dict)
+
     if args.run_simulator:
         sim = Simulator(manifest)
-        sim_plt = sim.simulate_load_time(client_env)
-        push_plt = sim.simulate_load_time(client_env, policy)
-        data["simulator"] = {"without_policy": sim_plt, "with_policy": push_plt}
+        sim_plt = sim.simulate_load_time(client_env, use_aft=args.use_aft)
+        mode_push_plt = sim.simulate_load_time(client_env, policy, use_aft=args.use_aft)
+        baseline_push_plt = sim.simulate_load_time(client_env, baseline_policy, use_aft=args.use_aft)
+        data["simulator"] = {"without_policy": sim_plt, "with_model_policy": mode_push_plt, "with_baseline_policy": baseline_push_plt}
 
     if args.run_replay_server:
-        *_, plts = get_page_load_time_in_replay_server(config.env_config.request_url, client_env, config)
-        *_, push_plts = get_page_load_time_in_replay_server(
-            config.env_config.request_url, client_env, config, policy=policy
+        *_, plts, crs = get_page_load_time_in_replay_server(config.env_config.request_url, client_env, config, extract_critical_requests=args.extract_critical_requests)
+        print("without_policy, plts=", plts, ", crs=", crs)
+        *_, model_push_plts, model_push_crs = get_page_load_time_in_replay_server(
+            config.env_config.request_url, client_env, config, policy=policy, extract_critical_requests=args.extract_critical_requests
         )
-        data["replay_server"] = {"without_policy": plts, "with_policy": push_plts}
+        print("with_model_policy, plts=", model_push_plts, ", crs=", model_push_crs)
+        *_, baseline_push_plts, baseline_push_crs = get_page_load_time_in_replay_server(
+            config.env_config.request_url, client_env, config, policy=baseline_policy, extract_critical_requests=args.extract_critical_requests
+        )
+        print("with_baseline_policy, plts=", baseline_push_plts, ", crs=", baseline_push_crs)
+        data["replay_server"] = {"without_policy": [plts,crs], "with_model_policy": [model_push_plts,model_push_crs], "with_baseline_policy": [baseline_push_plts, baseline_push_crs]}
 
     print(json.dumps(data, indent=4))
+
+
+
+
+def _push_preload_all_policy_generator() -> Callable[[EnvironmentConfig], Policy]:
+    """
+    Returns a generator than always choose to push/preload all assets
+    Push all in same domain. Preload all in other domains.
+    """
+
+    def _generator(env_config: EnvironmentConfig) -> Policy:
+        push_groups = env_config.push_groups
+        # Collect all resources and group them by type
+        all_resources = sorted([res for group in push_groups for res in group.resources], key=lambda res: res.order)
+        # choose the weight factor between push and preload
+        main_domain = urllib.parse.urlparse(env_config.request_url)
+        policy = Policy()
+        for r in all_resources:
+            if r.source_id == 0 or r.order == 0:
+                continue
+            request_domain = urllib.parse.urlparse(r.url)
+            push = request_domain.netloc == main_domain.netloc
+            policy.steps_taken += 1
+            if push:
+                source = random.randint(0, r.source_id - 1)
+                policy.add_default_push_action(push_groups[r.group_id].resources[source], r)
+            else:
+                source = random.randint(0, r.order - 1)
+                policy.add_default_preload_action(all_resources[source], r)
+        return policy
+
+    return _generator

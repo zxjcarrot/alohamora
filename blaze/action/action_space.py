@@ -294,12 +294,12 @@ class ActionSpace(gym.spaces.Tuple):
         """ Marks the action as used in both the push and preload spaces """
         self.push_space.use_action(action)
         self.preload_space.use_action(action)
-        logger.with_namespace("action_space").info(
-            "used_action",
-            action=repr(action),
-            new_push_size=len(self.push_space),
-            new_preload_size=len(self.preload_space),
-        )
+        # logger.with_namespace("action_space").info(
+        #     "used_action",
+        #     action=repr(action),
+        #     new_push_size=len(self.push_space),
+        #     new_preload_size=len(self.preload_space),
+        # )
 
     def empty(self):
         """ Returns true if there are no more valid actions in the action space """

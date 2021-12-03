@@ -9,7 +9,7 @@ let chromeFlags = [
   "--allow-insecure-localhost",
   "--disable-background-networking",
   "--disable-default-apps",
-  "--disable-logging",
+  "--enable-logging",
   "--headless",
   "--ignore-certificate-errors",
   "--no-check-certificate",
@@ -39,7 +39,7 @@ class HarCapturer {
         host: this.host,
         port: this.port
       });
-
+      console.log('chromeRemoteDebugger connected');
       if (this.options.slowdown && this.options.slowdown > 1) {
         if (client.Emulation.canEmulate()) {
           await client.Emulation.setCPUThrottlingRate({
@@ -54,11 +54,11 @@ class HarCapturer {
       client.Network.responseReceived(this.logResponse.bind(this));
       client.Network.dataReceived(this.logData.bind(this));
       client.Tracing.dataCollected(this.logTraceEvents.bind(this));
-
+      
       await client.Page.enable();
       await client.Network.enable();
       await client.Tracing.start();
-      
+      console.log('after Tracing.start');
       if(this.options.extractCriticalRequests) {
         await client.Runtime.enable();
         client.Runtime.consoleAPICalled((loggedObject) => {
@@ -79,10 +79,11 @@ class HarCapturer {
         });
       } 
 
-      
+      console.log('before navigate')
       await client.Page.navigate({ url: this.url });
       this.navStart = Date.now();
       await client.Page.loadEventFired();
+      console.log('after loadEventFired')
       await client.Tracing.end();
       return new Promise((resolve, reject) => {
         client.Tracing.tracingComplete(() => {
@@ -220,6 +221,17 @@ class HarCapturer {
         .map(t => t.initiated_at)
         .filter(t => t > 0)
     );
+
+    let criticalResourceMinTimeMs = 0
+    if (this.options.extractCriticalRequests == true) {
+      const criticalResourcesTimings = Object.values(this.resources)
+      .filter(r => this.critical_request_urls.includes(r.request.url))
+      .map(r => this.timings[r.request.url].time_to_first_byte_ms)
+      if (typeof criticalResourcesTimings !== 'undefined' && criticalResourcesTimings.length > 0) {
+        criticalResourceMinTimeMs = arrayMin(criticalResourcesTimings)
+      }
+    }
+
     const filtered_res = Object.values(this.resources)
       .filter(r => this.timings[r.request.url].initiated_at <= first_load_time_ms + pageLoadTimeMs)
       .map (r => {
@@ -242,6 +254,7 @@ class HarCapturer {
       },
       // events: this.events,
       timings: this.timings,
+      critical_resource_min_time_ms: criticalResourceMinTimeMs,
       page_load_time_ms: pageLoadTimeMs,
     };
   }
@@ -250,12 +263,14 @@ class HarCapturer {
 const captureHar = async (url, slowdown, extractCriticalRequests, userDataDir) => {
   let chrome;
   try {
+    
     if(typeof(userDataDir) != "undefined" && userDataDir != '') {
       chromeFlags.push(`--user-data-dir=${userDataDir}`)
     }
+    console.log('captureHar ', chromeFlags)
     chrome = await chromeLauncher.launch({ chromeFlags });
     await asyncWait(2000);
-
+    console.log('chrome lunched')
     const capturer = new HarCapturer({
       host: "localhost",
       port: chrome.port,
@@ -264,6 +279,7 @@ const captureHar = async (url, slowdown, extractCriticalRequests, userDataDir) =
       extractCriticalRequests,
     });
   
+    console.log('Launching captureHar')
     const res = await capturer.captureHar();
     return res;
   } finally {
@@ -275,6 +291,7 @@ const captureHar = async (url, slowdown, extractCriticalRequests, userDataDir) =
 
 module.exports = async (url, slowdown, outputFile, extractCriticalRequests, userDataDir) => {
   if(typeof(userDataDir) != "undefined" && userDataDir != '') {
+    console.log('first branch')
     // user-data-dir was passed in
     let files = fs.readdirSync(userDataDir);
     // check if the passed in folder is empty. user passed it in to get warm cache results
@@ -291,6 +308,7 @@ module.exports = async (url, slowdown, outputFile, extractCriticalRequests, user
       process.stdout.write(json)
     }
   } else {
+    console.log('second branch')
     // user did not pass in user-data-dir. just do once and return output. 
     const res = await captureHar(url, slowdown, extractCriticalRequests, userDataDir);
     const json = JSON.stringify(res);

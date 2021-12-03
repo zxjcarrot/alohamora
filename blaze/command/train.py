@@ -63,4 +63,5 @@ def train(args):
     env_config = EnvironmentConfig.load_file(args.manifest_file)
     config = get_config(env_config, reward_func=args.reward_func, use_aft=args.use_aft)
     print(train_config)
+    print(config)
     model.train(train_config, config)

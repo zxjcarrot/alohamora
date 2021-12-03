@@ -169,17 +169,18 @@ def start_server(
 
                 for res in push_res_list:
                     path = urlparse(res["url"]).path
-                    log.debug("create push rule", source=file.uri, push=path)
+                    log.info("create push rule", source=file.uri, push=path)
                     loc.add_push(path)
                 for res in preload_res_list:
-                    log.debug("create preload rule", source=file.uri, preload=res["url"], type=res["type"])
+                    log.info("create preload rule", source=file.uri, preload=res["url"], type=res["type"])
                     loc.add_preload(res["url"], res["type"])
 
         # Save the nginx configuration
         conf_file = os.path.join(file_dir, "nginx.conf")
-        log.debug("writing nginx config", conf_file=conf_file)
+        log.info("writing nginx config", conf_file=conf_file)
         with open(conf_file, "w") as f:
             f.write(str(config))
+            print("nginx config", str(config))
 
         # Create the interfaces, start the DNS server, and start the NGINX server
         with interfaces:
@@ -195,6 +196,9 @@ def start_server(
                     proc.wait(0.5)
                     raise RuntimeError("nginx exited unsuccessfully")
                 except subprocess.TimeoutExpired:
+                    print("nginx timedout")
+                    print("started nginx successfully")
                     yield
                 finally:
-                    proc.terminate()
+                    print("nginx terminated")
+                    #proc.terminate()

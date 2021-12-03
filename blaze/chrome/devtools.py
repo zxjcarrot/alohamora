@@ -66,11 +66,12 @@ def capture_har_in_replay_server(
 
     # spawn the HAR capturer process
     print("spawning har capturer %s %s" % (url, cmd))
-    log.debug("spawning har capturer", url=url, cmd=cmd)
-    har_capture_proc = subprocess.run(cmd, stdout=sys.stderr, stderr=sys.stderr, timeout=600)
+    log.info("spawning har capturer", url=url, cmd=cmd)
+    har_capture_proc = subprocess.run(cmd, stdout=sys.stderr, stderr=sys.stderr, timeout=500)
     har_capture_proc.check_returncode()
 
     with open(output_file, "r") as f:
+        #print("har json format: ", f.read())
         return har_from_json(f.read())
 
 
