@@ -323,10 +323,10 @@ class Simulator:
             ttfp = 0
             ctime = self.completion_time()
             if critical_nodes:
-                ttfp = np.mean(self.completed_nodes[node] for node in critical_nodes)
+                ttfp = min(self.completed_nodes[node] for node in critical_nodes)
                 return ttfp
             else:
-                self.log.warn("requested Time to First Paint, but no nodes marked `critical` found")
+                #self.log.warn("requested Time to First Paint, but no nodes marked `critical` found")
                 return ctime
 
         return self.completion_time()

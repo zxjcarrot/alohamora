@@ -89,6 +89,21 @@ class Policy:
                 policy["preload"][s.url] = [{"url": p.url, "type": ResourceType(p.type).name} for p in preload_list]
         return policy
 
+    @property
+    def as_dict_critical_only(self):
+        """
+        Constructs a dictionary representation of the push policy for JSON seralization
+        """
+        policy = {"push": {}, "preload": {}}
+        for s, push_list in self.push:
+            if push_list:
+                policy["push"][s.url] = [{"url": p.url, "type": ResourceType(p.type).name} for p in push_list if p.critical]
+        for s, preload_list in self.preload:
+            if preload_list:
+                policy["preload"][s.url] = [{"url": p.url, "type": ResourceType(p.type).name} for p in preload_list if p.critical]
+        return policy
+
+
     def apply_action(self, action: Union[Action, Tuple[int, Tuple[int, int, int], Tuple[int, int]]]):
         """ Given an encoded action, applies the action towards the push policy """
         if isinstance(action, (tuple, np.ndarray)):

@@ -20,7 +20,7 @@ from . import command
 @command.argument("--host", help="The host to bind the gRPC server to", default="0.0.0.0")
 @command.argument("--port", help="The port to bind the gRPC server to", default=24450, type=int)
 @command.argument("--max_workers", help="The maximum number of RPC workers", default=4, type=int)
-@command.argument("--reward_func", help="Reward function to use", default=1, choices=list(range(get_num_rewards())))
+@command.argument("--reward_func", help="Reward function to use", default=3, choices=list(range(get_num_rewards())))
 @command.command
 def serve(args):
     """

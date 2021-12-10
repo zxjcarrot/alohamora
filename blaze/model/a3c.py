@@ -11,9 +11,9 @@ from blaze.logger import logger
 from .model import SavedModel
 
 
-WINDOW_SIZE = 50
+WINDOW_SIZE = 25
 MAX_ITERATIONS = 150
-MIN_ITERATIONS = 50
+MIN_ITERATIONS = 35
 MAX_TIME_SECONDS = 1 * 60 * 60  # 2 hours
 
 
@@ -65,11 +65,11 @@ def stop_condition():
 
 COMMON_CONFIG = {
     "sample_batch_size": 256,
-    "train_batch_size": 512,
+    "train_batch_size": 1024,
     "batch_mode": "truncate_episodes",
     "collect_metrics_timeout": 1200,
     "num_workers": 2,
-    "num_gpus": 0,
+    "num_gpus": 1,
     "model": {"use_lstm": True, "lstm_use_prev_action_reward": True},
 }
 
@@ -80,17 +80,18 @@ def train(train_config: TrainConfig, config: Config):
     import ray
     from ray.tune import run_experiments
 
-    ray.init(num_cpus=train_config.num_workers + 1, log_to_driver=False)
+    ray.init(num_cpus=train_config.num_workers + 1, num_gpus=1, log_to_driver=False)
 
     name = train_config.experiment_name
     run_experiments(
         {
             name: {
                 "run": "A3C",
+                "local_dir": "/home/zxjcarrot/ray_results_ttfp_min",
                 "env": Environment,
                 "stop": ray.tune.function(stop_condition()),
                 "checkpoint_at_end": True,
-                "checkpoint_freq": 1,
+                "checkpoint_freq": 10,
                 "max_failures": 3,
                 "config": {**COMMON_CONFIG, "num_workers": train_config.num_workers, "env_config": config},
             }

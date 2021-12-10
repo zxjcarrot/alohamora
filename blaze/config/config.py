@@ -51,7 +51,7 @@ def get_config(
     env_config: Optional[EnvironmentConfig] = None,
     client_env: Optional[ClientEnvironment] = None,
     reward_func: Optional[int] = None,
-    use_aft: Optional[bool] = None,
+    use_aft: Optional[bool] = True,
 ) -> Config:
     """
     get_config returns the runtime configuration, taking values from environment variables

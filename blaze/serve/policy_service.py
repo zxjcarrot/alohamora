@@ -18,7 +18,7 @@ class PolicyService(policy_service_pb2_grpc.PolicyServiceServicer):
     serving push policies
     """
 
-    def __init__(self, saved_model: SavedModel, config=get_config()):
+    def __init__(self, saved_model: SavedModel, config=get_config(use_aft=True)):
         self.config = config
         self.saved_model = saved_model
         self.policies: Dict[str, policy_service_pb2.Policy] = {}
@@ -29,14 +29,14 @@ class PolicyService(policy_service_pb2_grpc.PolicyServiceServicer):
     def create_policy(self, page: policy_service_pb2.Page) -> policy_service_pb2.Policy:
         """ Creates and formats a push policy for the given page """
         model = self.create_model_instance(page)
-        import time
-        tic = time.perf_counter()
-        for x in range(10):
-            model.clear()
-            response = policy_service_pb2.Policy()
-            response.policy = json.dumps(model.policy.as_dict)
-        toc = time.perf_counter()
-        print(f"Policy generated in {toc - tic:0.4f} seconds")
+        #import time
+        # tic = time.perf_counter()
+        # for x in range(10):
+        #     model.clear()
+        response = policy_service_pb2.Policy()
+        response.policy = json.dumps(model.policy.as_dict)
+        # toc = time.perf_counter()
+        # print(f"Policy generated in {toc - tic:0.4f} seconds")
         return response
 
     def create_model_instance(self, page: policy_service_pb2.Page) -> ModelInstance:

@@ -1,6 +1,8 @@
 """ Implements the command for querying a trained policy """
 import json
 
+import random
+
 import grpc
 import collections
 import json
@@ -132,9 +134,18 @@ def evaluate(args):
     instance = saved_model.instantiate(config)
     import time
     tic = time.perf_counter()
-    policy = instance.policy
+
+    import time
+    tic = time.perf_counter()
+    policy = None
+    for x in range(10):
+        instance.clear()
+        policy = instance.policy
     toc = time.perf_counter()
-    print(f"Policy generated in {toc - tic:0.4f} seconds")
+    print(f"All Policies generated in {toc - tic:0.4f} seconds")
+    average_model_inference_time = (toc - tic) / 10
+    print(f"Single policy generation overhead: {average_model_inference_time:0.4f} seconds")
+    
     data = policy.as_dict
 
     print("Model Policy Loaded")
@@ -146,9 +157,13 @@ def evaluate(args):
             "policy": policy.as_dict,
         }
 
+    average_model_inference_time *= 1000
+
     baseline_policy_generator = _push_preload_all_policy_generator()
     baseline_policy = baseline_policy_generator(manifest)
+    push_all_critical_policy = _push_preload_all_critical_policy_generator()(manifest)
     print("Baseline Policy ", baseline_policy.as_dict)
+    print("Push Critical Policy: ", push_all_critical_policy.as_dict)
     print("Model Policy: ", policy.as_dict)
 
     if args.run_simulator:
@@ -164,16 +179,65 @@ def evaluate(args):
         *_, model_push_plts, model_push_crs = get_page_load_time_in_replay_server(
             config.env_config.request_url, client_env, config, policy=policy, extract_critical_requests=args.extract_critical_requests
         )
+        
         print("with_model_policy, plts=", model_push_plts, ", crs=", model_push_crs)
+
+        *_, push_critical_plts, push_critical_crs = get_page_load_time_in_replay_server(
+            config.env_config.request_url, client_env, config, policy=push_all_critical_policy, extract_critical_requests=args.extract_critical_requests
+        )
+        print("push_all_critical_policy, plts=", push_critical_plts, ", crs=", push_critical_crs)
+        
         *_, baseline_push_plts, baseline_push_crs = get_page_load_time_in_replay_server(
             config.env_config.request_url, client_env, config, policy=baseline_policy, extract_critical_requests=args.extract_critical_requests
         )
-        print("with_baseline_policy, plts=", baseline_push_plts, ", crs=", baseline_push_crs)
-        data["replay_server"] = {"without_policy": [plts,crs], "with_model_policy": [model_push_plts,model_push_crs], "with_baseline_policy": [baseline_push_plts, baseline_push_crs]}
 
+        model_push_plts_with_inference_overhead = [x + average_model_inference_time for x in model_push_plts]
+        print("with_model_policy_and_inference, plts=", model_push_plts_with_inference_overhead, ", crs=", model_push_crs)
+        print("with_baseline_policy, plts=", baseline_push_plts, ", crs=", baseline_push_crs)
+
+
+        data["replay_server"] = {
+            "without_policy": [plts,crs],
+            "with_model_policy_and_inference": [model_push_plts_with_inference_overhead, model_push_crs], 
+            "with_model_policy": [model_push_plts,model_push_crs], 
+            "with_push_critical_policy": [push_critical_plts,push_critical_crs], 
+            "with_baseline_policy": [baseline_push_plts, baseline_push_crs]}
+    data["average_model_inference_time"] = average_model_inference_time
     print(json.dumps(data, indent=4))
 
+def _push_preload_all_critical_policy_generator() -> Callable[[EnvironmentConfig], Policy]:
+    """
+    Returns a generator than always choose to push/preload all assets
+    Push all in same domain. Preload all in other domains.
+    """
 
+    def _generator(env_config: EnvironmentConfig) -> Policy:
+        push_groups = env_config.push_groups
+        # Collect all resources and group them by type
+        all_resources = sorted([res for group in push_groups for res in group.resources], key=lambda res: res.order)
+        # choose the weight factor between push and preload
+        main_domain = urllib.parse.urlparse(env_config.request_url)
+        policy = Policy()
+        for r in all_resources:
+            request_domain = urllib.parse.urlparse(r.url)
+            print(r, main_domain.netloc, request_domain.netloc)
+            push = request_domain.netloc == main_domain.netloc
+            if r.critical == False and (r.source_id == 0 or r.order == 0):
+                continue
+
+            if r.critical == False:
+                continue
+
+            policy.steps_taken += 1
+            if push:
+                source = random.randint(0, r.source_id - 1) if r.source_id > 0 else r.source_id
+                policy.add_default_push_action(push_groups[r.group_id].resources[source], r)
+            else:
+                source = random.randint(0, r.order - 1)
+                policy.add_default_preload_action(all_resources[source], r)
+        return policy
+
+    return _generator
 
 
 def _push_preload_all_policy_generator() -> Callable[[EnvironmentConfig], Policy]:
@@ -190,10 +254,11 @@ def _push_preload_all_policy_generator() -> Callable[[EnvironmentConfig], Policy
         main_domain = urllib.parse.urlparse(env_config.request_url)
         policy = Policy()
         for r in all_resources:
-            if r.source_id == 0 or r.order == 0:
-                continue
             request_domain = urllib.parse.urlparse(r.url)
             push = request_domain.netloc == main_domain.netloc
+            if r.source_id == 0 or r.order == 0:
+                continue
+            
             policy.steps_taken += 1
             if push:
                 source = random.randint(0, r.source_id - 1)

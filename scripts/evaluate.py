@@ -72,6 +72,7 @@ def get_args():
     parser.add_argument("--latency", type=int, help="latency to test with")
     parser.add_argument("--cpu_slowdown", type=int, choices=[1, 2, 4], help="cpu_slowdown to test with")
     parser.add_argument("--randomize", help="set this flag to randomly choose bw, latency and cpu", action="store_true")
+    parser.add_argument("--use_aft", help="use_aft flag", action="store_true")
     parser.add_argument(
         "--reward_func",
         required=True,
@@ -112,7 +113,7 @@ def website_exists(experiment_name, results_dir):
 
 
 def test_website(
-    results_dir, manifests_dir, reward_func, bandwidth, cpu_slowdown, latency, checkpoint_file, experiment_name
+    results_dir, manifests_dir, reward_func, bandwidth, cpu_slowdown, latency, checkpoint_file, experiment_name, use_aft
 ):
     with open(
         get_results_fname(experiment_name, results_dir, bandwidth, cpu_slowdown, latency) + ".json", "ab+"
@@ -131,6 +132,7 @@ def test_website(
                     os.path.join(manifests_dir, experiment_name) + ".manifest",
                     "--latency",
                     str(latency),
+                    "--use_aft" if use_aft else "",
                     "--bandwidth",
                     str(bandwidth),
                     "--cpu_slowdown",
@@ -150,15 +152,18 @@ def test_website(
             )
 
 
-def worker(results_dir, manifests_dir, reward_func, bandwidth, cpu_slowdown, latency, checkpoint_file, experiment_name):
+def worker(results_dir, manifests_dir, reward_func, bandwidth, cpu_slowdown, latency, checkpoint_file, experiment_name, use_aft):
     try:
         if website_exists(experiment_name, results_dir):
             print(f"evaluating {checkpoint_file} ... skipping (already exists)")
             return
         print(f"evaluating {checkpoint_file} ...")
         test_website(
-            results_dir, manifests_dir, reward_func, bandwidth, cpu_slowdown, latency, checkpoint_file, experiment_name
+            results_dir, manifests_dir, reward_func, bandwidth, cpu_slowdown, latency, checkpoint_file, experiment_name, use_aft
         )
+
+        # import subprocess
+        # subprocess.getoutput('docker ps | awk \'{print $1}\' | xargs docker kill')
     except KeyboardInterrupt:
         raise
     except:
@@ -190,6 +195,7 @@ def main(args):
                 latency,
                 checkpoint_file,
                 experiment_name,
+                True if args.use_aft else False
             )
             for (checkpoint_file, experiment_name) in websites
             for (bandwidth, cpu_slowdown, latency) in params

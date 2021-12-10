@@ -180,7 +180,7 @@ def start_server(
         log.info("writing nginx config", conf_file=conf_file)
         with open(conf_file, "w") as f:
             f.write(str(config))
-            print("nginx config", str(config))
+            #print("nginx config", str(config))
 
         # Create the interfaces, start the DNS server, and start the NGINX server
         with interfaces:

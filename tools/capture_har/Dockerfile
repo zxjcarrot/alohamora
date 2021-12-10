@@ -57,13 +57,11 @@ RUN apt-get update -y && \
     apt-get clean autoclean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/ && \
-    rm -rf /tmp/mahimahi && \
+    rm -rf /tmp/mahimahi
     # Disable systemd-resolved and nginx from starting automatically
     # systemctl disable systemd-resolved && \
     # systemctl disable nginx && \
     # Add non-root user to use mahimahi tools
-    adduser --system --disabled-password --no-create-home --shell /bin/bash --ingroup sudo  user && \
-    passwd -d user
 
 WORKDIR /opt/blaze
 COPY requirements.txt .
@@ -85,6 +83,10 @@ COPY tools/capture_har/*.js /opt/capture_har/
 RUN echo "{}" > /opt/empty_policy.json
 RUN mkdir -p /var/log/nginx
 COPY tools/capture_har/entrypoint.sh /opt/entrypoint.sh
+
+
+RUN adduser --system --disabled-password --no-create-home --shell /bin/bash --ingroup sudo user && \
+    passwd -d user
 
 USER user
 ENTRYPOINT ["/opt/entrypoint.sh"]

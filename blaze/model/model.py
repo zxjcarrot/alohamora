@@ -42,10 +42,10 @@ class ModelInstance:
         policy_map = self.agent.workers.local_worker().policy_map if hasattr(self.agent, "workers") else None
         state = policy_map[DEFAULT_POLICY_ID].get_initial_state() if policy_map else []
         use_lstm = len(state) > 0
-        log.info("Called policy")
-        log.info("model not complete")
+        #log.info("Called policy")
+        #log.info("model not complete")
         while not completed:
-            log.info("Called policy before step")
+            #log.info("Called policy before step")
             # query the agent for an action
             if use_lstm:
                 action, state, _ = self.agent.compute_action(obs, state=state, prev_action=action, prev_reward=reward)
@@ -54,7 +54,7 @@ class ModelInstance:
             action = _flatten_action(action)
             # deflate and apply the action
             obs, reward, completed, _ = env.step(action)
-        log.info("model completed")
+        #log.info("model completed")
         self._policy = env.policy
         return self._policy
 
